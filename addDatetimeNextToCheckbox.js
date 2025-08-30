@@ -34,26 +34,33 @@ function onEdit(e) {
             .getValues(); // TRUE/FALSE
         const times = sh.getRange(rowStart, R.TIME_COL, numRows, 1).getValues(); // Date or ''
 
-        // Prepare output while keeping timestamps sticky (only set if empty)
+        // Build output: set once, clear on uncheck, never overwrite existing time
         const out = new Array(numRows);
         let anyChange = false;
+        let anySetDate = false;
 
         for (let i = 0; i < numRows; i++) {
             const isChecked = checks[i][0] === true;
-            const hasTime = times[i][0] !== "" && times[i][0] != null;
+            const curTime = times[i][0];
+            const hasTime = curTime !== "" && curTime != null;
 
             if (isChecked && !hasTime) {
-                out[i] = [new Date()]; // set once
+                out[i] = [new Date()]; // set timestamp once
+                anyChange = true;
+                anySetDate = true;
+            } else if (!isChecked && hasTime) {
+                out[i] = [""]; // clear timestamp on uncheck
                 anyChange = true;
             } else {
-                out[i] = [times[i][0]]; // keep existing (including when unchecked)
+                out[i] = [curTime]; // leave as-is
             }
         }
 
         if (anyChange) {
             const timeRange = sh.getRange(rowStart, R.TIME_COL, numRows, 1);
             timeRange.setValues(out);
-            timeRange.setNumberFormat(TIME_FORMAT);
+            // Apply number format if we set any new dates (formatting doesn't hurt clears either)
+            if (anySetDate) timeRange.setNumberFormat(TIME_FORMAT);
         }
     }
 }
